@@ -167,7 +167,7 @@ while read logi; do
 	fi
 done < logs.txt
 while read logz; do
-	if [ shred -u "$logz" ] ; then
+	if [ rm "$logz" ] ; then
 		shred -u "$logz"
 	fi
 done < logs_gz.txt
