@@ -167,7 +167,7 @@ while read logi; do
 	fi
 done < logs.txt
 while read logz; do
-	if [ rm "$logz" ] ; then
+	if [ -f "$logz" ] ; then
 		shred -u "$logz"
 	fi
 done < logs_gz.txt
@@ -197,9 +197,9 @@ find / -iname '*.deb' -type f 2>&1 | grep -v 'Permission denied' > rest_of_deb.t
 #--------------------Czyszczenie aktualizacji--------------------------
 #======================================================================
 
-apt-get clean
-apt-get autoclean
-apt-get autoremove
+apt-get clean > /dev/null 2>&1
+apt-get autoclean > /dev/null 2>&1
+apt-get autoremove > /dev/null 2>&1
 
 #======================================================================
 #------------------------Czyszczenie dat-------------------------------
