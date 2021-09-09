@@ -28,7 +28,7 @@ esac
 done
 
 if [ "$DATA" = "" ] ; then
-	DATA="2021-09-02"
+	DATA="2021-05-02"
 fi
 
 #======================================================================
@@ -57,55 +57,54 @@ random_date() {
 	los=$(( $RANDOM % $len +1))
 	#FIL= $(head -n "$los" "$1" | tail -n +"$los") - sciezka pliku
 	touch -r $(head -n "$los" "$1" | tail -n +"$los") $2
-
 }
 
 
 #======================================================================
 #------------------------Czyszczenie historii--------------------------
 #======================================================================
+#--------------czyszczenie plikow dla wszystkich uzytkownikow----------
 
+cat /etc/passwd | grep -P '^.*:.*:[0-9]+:[0-9]+:.*:.+:' | cut -d ':' -f 6 | uniq > passwd.txt
+
+# w programie nadal wykorzystwane jest nadpisywanie >
+# nie bylem pewien czy pliki te beda dzialaly poprawnie gdy zostana nadpisane za pomoca shred
+while read pass; do
 #----------------------------bash-------------------------------------
-echo -en "\tCzyszczenie bash_history......"
-> ~/.bash_history
-echo "OK"
+	if [ -f "$pass/.bash_history" ] ; then
+		> "$pass/.bash_history"
+	fi
+#-------------------------nano-------------------------------------
+	if [ -f "$pass/.nano_history" ] ; then
+		> "$pass/.nano_history"
+	fi
+#------------------------vim--------------------------
+	if [ -f "$pass/.viminfo" ] ; then
+		> "$pass/.viminfo"
+	fi
+#------------------------my_sql------------------------------------
+	if [ -f "$pass/.mysql_history" ] ; then
+		> "$pass/.mysql_history"
+	fi
+#------------------------mc/mcedit--------------------------
+	if [ -f "$pass/.local/share/mc/history" ] ; then
+		> "$pass/.local/share/mc/history"
+	fi
+#------------------------mc/mcedit--------------------------
+	if [ -f "$pass/.ssh/known_hosts" ] ; then
+		shred -u "$pass/.ssh/known_hosts"
+	fi
+
+done < passwd.txt
 
 #--------------------------swp files--------------------------
 echo -en "\tCzyszczenie plikow .swp....."
 find / -iname '*.sw[klmnop]' 2>&1 >swps.txt | grep -v "Permission denied" >&2
 while read swps; do
 	if echo "$swpd"; then
-		rm "$swpd" 
+		shred -u "$swpd" 
 	fi
 done < swps.txt
-echo "OK"
-
-#-------------------------nano-------------------------------------
-echo -en "\tCzyszczebue nano_history......."
-if [ -f ~/.nano_history ]; then
-	> ~/.nano_history
-fi
-echo "OK"
-
-#------------------------my_sql------------------------------------
-echo -en "\tCzyszczenie mysql_history........"
-if [ -f ~/.mysql_history ]; then
-	> ~/.mysql_history
-fi
-echo "OK"
-
-#------------------------vim--------------------------
-echo -en '\tCzyszcznie viminfo......'
-if [ -f ~/viminfo ]; then
-	> ~/.viminfo
-fi
-echo 'OK'
-
-#------------------------mc/mcedit--------------------------
-echo -en "\tCzyszczenie mc......"
-if [ -f ~/.local/share/mc/history ]; then
-	> ~/.local/share/mc/history
-fi
 echo "OK"
 
 #mozliwe edytory
@@ -118,7 +117,6 @@ while read his; do
 	> "$his"
 done < hist.txt
 echo "OK"
-
 
 
 
@@ -139,14 +137,13 @@ echo "OK"
 #------------------------Usun pliki bak------------------------------
 echo -en "\tUsuwanie plikow bak.........."
 while read bk; do
-	rm "$bk"
+	shred -u "$bk"
 done < bak.txt
 echo "OK"
 #------------------------Znajdz pliki tmp------------------------------
 echo -en "\tSzukanie plikow tmp.........."
 find / -iname '*.tmp' -type f 2>&1 >tmp.txt | grep -v "Permission denied" >&2
 echo "OK"
-
 
 
 
@@ -170,8 +167,8 @@ while read logi; do
 	fi
 done < logs.txt
 while read logz; do
-	if [ rm "$logz" ] ; then
-		rm "$logz"
+	if [ shred -u "$logz" ] ; then
+		shred -u "$logz"
 	fi
 done < logs_gz.txt
 echo 'OK'
@@ -179,33 +176,30 @@ echo 'OK'
 
 
 
-
-
 #======================================================================
 #-----------------Czyszczenie instalowanych pakietow-------------------
 #======================================================================
-echo -en "\tWykonanie apt-get clean/autoclean................."
-apt-get clean
-apt-get autoclean
-echo "OK"
-
-echo -en "\tRęczne czyszczenie /var/cache/apt/archives.........."
+echo -en "\tCzyszczenie /var/cache/apt/archives.........."
 find /var/cache/apt/archives -iname '*.deb' -type f 2>&1 | grep -v 'Permission denied' > archive.txt
 while read arch; do
-	rm "$arch"
+	shred -u "$arch"
 done < archive.txt
-rm /var/cache/apt/archives/partial/*
+shred -u /var/cache/apt/archives/partial/*
 echo "OK"
 
+#======================================================================
+#------------Czyszczenie pozostalych plikow deb------------------------
+#======================================================================
+
+find / -iname '*.deb' -type f 2>&1 | grep -v 'Permission denied' > rest_of_deb.txt
 
 #======================================================================
-#-----------------Czyszczenie /var/cache-------------------
+#--------------------Czyszczenie aktualizacji--------------------------
 #======================================================================
-echo -en "\tWykonanie apt-get clean/autoclean................."
+
+apt-get clean
+apt-get autoclean
 apt-get autoremove
-echo "OK"
-
-
 
 #======================================================================
 #------------------------Czyszczenie dat-------------------------------
@@ -231,27 +225,29 @@ echo 'OK'
 #------------------------Koniec programu - czyszczenie-----------------
 #======================================================================
 
-: '
 
-if [ -s ./tmp.txt ] ; then
-	echo 'Zweryfikuj zawartosc tmp'
-else 
-	rm ./tmp.txt
-fi
-rm ./dates.txt
-rm ./to_change.txt
-rm ./archive.txt
-rm ./swps.txt
-rm ./logs.txt
-rm ./logs_gz.txt
-rm ./hist.txt
-rm ./bat.txt
-rm ./bak.txt
-'
+
+shred -u ./dates.txt
+shred -u ./to_change.txt
+shred -u ./archive.txt
+shred -u ./swps.txt
+shred -u ./logs.txt
+shred -u ./logs_gz.txt
+shred -u ./hist.txt
+#shred -u ./bat.txt
+shred -u ./bak.txt
+shred -u ./passwd.txt
+
+echo ""
+echo ""
+echo "UWAGA! Pliki:"
+echo "- tmp.txt"
+echo "- bat.txt"
+echo "- rest_of_deb.txt"
+echo "nalezy przejrzec i manulanie sprawdzic czy znalezione pliki powinny zostac usuniete!"
+echo "Po weryfikacji plikow nalezy je usunac komenda 	\" shred -u nazwa_pliku \" "
 echo ""
 echo "Koniec dzialania programu"
 
 
-#Po za wersja testowa nalezy:
-#Usunac komentarz czyszczacy utworzone pliki - na ten moment zostaja zapisane w celu potwierdzenia dzialania programu
-#Zmiana daty ostatniej modyfikacji ? w poleceniu stat -> wiersz Change
+
