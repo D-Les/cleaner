@@ -56,7 +56,9 @@ random_date() {
 	len=$(wc -l "$1"| awk '{ print $1 }')
 	los=$(( $RANDOM % $len +1))
 	#FIL= $(head -n "$los" "$1" | tail -n +"$los") - sciezka pliku
-	touch -r $(head -n "$los" "$1" | tail -n +"$los") $2
+	if [ -f $(head -n "$los" "$1" | tail -n +"$los") ] ; then
+		touch -r $(head -n "$los" "$1" | tail -n +"$los") $2
+	fi
 }
 
 
