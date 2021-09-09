@@ -207,7 +207,7 @@ apt-get autoremove > /dev/null 2>&1
 
 echo -en "\tSzukanie dat do modyfikacji................"
 find / -type f ! -newermt "$DATA" 2>&1 | grep -v "Permission denied" > dates.txt
-find . -type f -newermt "$DATA" 2>&1 | grep -v "Permission denied" > to_change.txt 
+find / -type f -newermt "$DATA" 2>&1 | grep -v "Permission denied" > to_change.txt 
 echo "OK"
 
 
